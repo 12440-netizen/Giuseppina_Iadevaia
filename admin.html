@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - MIRAMARADONA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/config.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* ── Base ── */
+        body { overflow-y: auto; height: auto; padding: 20px; background: var(--surface); color: var(--text-main); }
+
+        /* ── Login Overlay ── */
+        #login-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--surface);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-card {
+            max-width: 400px;
+            width: 100%;
+            padding: 48px 40px;
+            text-align: center;
+            border: var(--border-main);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+        }
+        .login-logo {
+            width: 160px;
+            margin-bottom: 32px;
+        }
+        .login-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+        .login-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 28px;
+        }
+        .pin-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 26px;
+            text-align: center;
+            letter-spacing: 14px;
+            background: #fdfdfd;
+            border: 1px solid var(--neutral);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-family: 'Manrope', sans-serif;
+            transition: border-color 0.2s;
+        }
+        .pin-input:focus { outline: none; border-color: var(--primary); }
+        .pin-input.error { border-color: #ef4444; }
+        #login-error {
+            color: #ef4444;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            min-height: 18px;
+        }
+
+        /* ── Admin Dashboard ── */
+        #admin-content { display: none; }
+        .admin-container { max-width: 1000px; margin: 40px auto; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; margin-top: 16px; }
+        .card { background: #fff; border-radius: 12px; border: var(--border-main); overflow: hidden; transition: all 0.2s; }
+        .card:hover { border-color: #000; }
+        .card img { width: 100%; height: 180px; object-fit: cover; border-bottom: var(--border-main); }
+        .card-content { padding: 16px; border-bottom: var(--border-main); }
+        .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; background: #fff; }
+        .card-actions.single { grid-template-columns: 1fr; }
+        .status-0 { color: #92400e; background: #fef3c7; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+        .status-1 { color: #065f46; background: #d1fae5; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: var(--border-main); padding-bottom: 20px; margin-bottom: 36px; }
+        .btn { padding: 8px 16px; font-size: 13px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; border: none; font-family: inherit; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.8; }
+        .btn-danger { background: #fee2e2; color: #991b1b; }
+
+        /* ── Sections ── */
+        .admin-section { margin-bottom: 52px; }
+        .section-heading { display: flex; align-items: center; gap: 12px; font-size: 17px; font-weight: 700; color: var(--primary); padding-bottom: 14px; border-bottom: var(--border-main); }
+        .count-badge { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 50px; }
+        .badge-pending  { background: #fef3c7; color: #92400e; }
+        .badge-approved { background: #d1fae5; color: #065f46; }
+        .empty-state { grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted); background: #f9f9f9; border-radius: 12px; border: var(--border-main); }
+        .empty-state p { margin: 0; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <!-- ══ LOGIN OVERLAY ══ -->
+    <div id="login-overlay">
+        <div class="login-card glass-panel">
+            <img src="assets/logo_azzurro_01.svg" alt="MIRAMARADONA" class="login-logo">
+            <p class="login-title">Area Amministratori</p>
+            <p class="login-subtitle">Inserisci il PIN di accesso per continuare.</p>
+
+            <input type="password" id="pin-input" class="pin-input"
+                   maxlength="6" placeholder="••••••" inputmode="numeric"
+                   autocomplete="off">
+
+            <div id="login-error"></div>
+
+            <button id="btn-login" class="btn btn-primary" style="width:100%; padding:14px; font-size:15px;">
+                Entra
+            </button>
+        </div>
+    </div>
+
+    <!-- ══ ADMIN DASHBOARD ══ -->
+    <div id="admin-content">
+        <div class="admin-container">
+            <header>
+                <h2>Moderazione Foto</h2>
+                <div>
+                    <a href="index.html" class="btn btn-secondary" style="width:auto; margin-right:10px;">
+                        <i data-lucide="map"></i> Vai alla Mappa
+                    </a>
+                    <button onclick="changePin()" class="btn btn-secondary" style="width:auto; margin-right:10px;">
+                        <i data-lucide="key"></i> Cambia PIN
+                    </button>
+                    <button id="btn-logout" class="btn btn-secondary" style="width:auto;">
+                        <i data-lucide="log-out"></i> Esci
+                    </button>
+                </div>
+            </header>
+
+            <!-- In Attesa -->
+            <section class="admin-section">
+                <h3 class="section-heading">
+                    In Attesa di Approvazione
+                    <span id="pending-count" class="count-badge badge-pending">0</span>
+                </h3>
+                <div id="pending-grid" class="grid"></div>
+            </section>
+
+            <!-- Approvate -->
+            <section class="admin-section">
+                <h3 class="section-heading">
+                    Foto Approvate
+                    <span id="approved-count" class="count-badge badge-approved">0</span>
+                </h3>
+                <div id="approved-grid" class="grid"></div>
+            </section>
+        </div>
+    </div>
+
+    <script src="js/admin.js"></script>
+</body>
+</html>

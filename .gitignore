@@ -1,0 +1,19 @@
+# Dependency directories
+node_modules/
+server/node_modules/
+
+# Database and state
+db.json
+server/db.json
+
+# User uploads (keep the folder, ignore content)
+uploads/*
+!uploads/.gitkeep
+uploads_php/*
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIRAMARADONA - Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { 
+            overflow: auto; 
+            height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: var(--surface); 
+            padding: 20px;
+        }
+        .login-card {
+            max-width: 400px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+            border: var(--border-main);
+            box-shadow: none;
+        }
+        .pin-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 24px;
+            text-align: center;
+            letter-spacing: 12px;
+            background: #fdfdfd;
+            border: 1px solid var(--neutral);
+            border-radius: 12px;
+            margin: 20px 0;
+            font-family: 'Manrope', sans-serif;
+        }
+        .pin-input:focus {
+            outline: none;
+            border-color: #000;
+        }
+    </style>
+    <script src="js/config.js"></script>
+</head>
+<body>
+    <div class="login-card glass-panel">
+        <h2 style="color:var(--primary); margin-bottom: 20px; font-weight: 700;">Accesso Admin</h2>
+        <p style="color:var(--text-muted);">Inserisci il PIN di sicurezza.</p>
+        
+        <input type="password" id="pin" class="pin-input" maxlength="6" placeholder="••••••" inputmode="numeric">
+        
+        <button id="btn-login" class="btn btn-primary" style="margin-top: 10px;">
+            Entra
+        </button>
+        
+        <p id="error-msg" style="color: #e74c3c; margin-top: 15px; font-weight: 600; display: none;"></p>
+    </div>
+
+    <script>
+        const pinInput = document.getElementById('pin');
+        const btnLogin = document.getElementById('btn-login');
+        const errorMsg = document.getElementById('error-msg');
+
+        async function handleLogin() {
+            const pin = pinInput.value;
+            if (!pin) return;
+
+            btnLogin.disabled = true;
+            errorMsg.style.display = 'none';
+
+            try {
+                const res = await fetch(`${CONFIG.API_BASE}/login.php`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin }),
+                    credentials: 'include'
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    window.location.href = 'admin.html';
+                } else {
+                    errorMsg.textContent = data.error || 'PIN errato';
+                    errorMsg.style.display = 'block';
+                    pinInput.value = '';
+                }
+            } catch (e) {
+                alert("Errore di connessione");
+            } finally {
+                btnLogin.disabled = false;
+            }
+        }
+
+        btnLogin.addEventListener('click', handleLogin);
+        pinInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+    </script>
+</body>
+</html>
