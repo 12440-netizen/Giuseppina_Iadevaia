@@ -98,6 +98,7 @@ const upload = multer({
 
 // Login
 app.post('/api/login.php', (req, res) => {
+    console.log('Login attempt received:', req.body);
     const { pin } = req.body;
     if (!pin) return res.status(400).json({ error: "Missing PIN" });
 

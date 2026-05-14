@@ -17,6 +17,7 @@ const modalTitle = document.getElementById('modal-title');
 const modalMessage = document.getElementById('modal-message');
 const modalPrimaryBtn = document.getElementById('modal-primary-btn');
 const modalSecondaryBtn = document.getElementById('modal-secondary-btn');
+const sidebarMessageArea = document.getElementById('sidebar-message-area');
 
 // Preview Elements
 const previewSection = document.getElementById('preview-section');
@@ -24,7 +25,6 @@ const previewList = document.getElementById('preview-list');
 const pendingCountUI = document.getElementById('pending-count-ui');
 const btnConfirmUpload = document.getElementById('btn-confirm-upload');
 const btnCancelPreview = document.getElementById('btn-cancel-preview');
-const uploadSection = document.querySelector('.upload-section');
 
 let uploadQueue = []; // Array of { id, file, filename, dataUrl, lat, lng, category }
 
@@ -40,7 +40,12 @@ function initMap() {
     }).addTo(map);
 
     L.control.zoom({ position: 'topright' }).addTo(map);
-    markerLayer = L.markerClusterGroup({ showCoverageOnHover: false, spiderfyOnMaxZoom: true }).addTo(map);
+    // Disabilitato spiderfy per usare il sistema a carousel stile Booking
+    markerLayer = L.markerClusterGroup({ 
+        showCoverageOnHover: false, 
+        spiderfyOnMaxZoom: false,
+        zoomToBoundsOnClick: true 
+    }).addTo(map);
 
     map.on('popupopen', async (e) => {
         if (window.lucide) lucide.createIcons();
@@ -111,6 +116,7 @@ photoUpload.addEventListener('change', async (e) => {
 
     showStatus("", false);
     renderPreviewList();
+    openSidebar(); // Apre la sidebar dopo aver processato le foto
     photoUpload.value = '';
 });
 
@@ -144,13 +150,12 @@ async function processFile(file) {
 
 function renderPreviewList() {
     if (!uploadQueue.length) {
-        previewSection.style.display = 'none';
-        uploadSection.style.display = 'flex';
+        if (previewSection) previewSection.style.display = 'none';
+        closeSidebar();
         return;
     }
 
-    previewSection.style.display = 'flex';
-    uploadSection.style.display = 'none';
+    if (previewSection) previewSection.style.display = 'flex';
     pendingCountUI.textContent = uploadQueue.length;
 
     previewList.innerHTML = uploadQueue.map(item => `
@@ -222,8 +227,7 @@ btnConfirmUpload.addEventListener('click', async () => {
 
 async function startBulkUpload() {
     const total = uploadQueue.length;
-    previewSection.style.display = 'none';
-    uploadSection.style.display = 'flex';
+    if (previewSection) previewSection.style.display = 'none';
 
     for (let i = 0; i < uploadQueue.length; i++) {
         const item = uploadQueue[i];
@@ -266,40 +270,100 @@ async function loadGlobalPhotos() {
         const response = await fetch(url);
         if (response.ok) {
             const photos = await response.json();
-            photos.forEach(photo => {
-                if (!displayedMarkerIds.has(photo.id)) {
-                    addMarkerToMap(photo);
-                    displayedMarkerIds.add(photo.id);
-                }
+            
+            // Raggruppamento per coordinate (chiave "lat_lng")
+            const groups = {};
+            photos.forEach(p => {
+                const key = `${p.lat.toFixed(6)}_${p.lng.toFixed(6)}`;
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(p);
+            });
+
+            // Rimuovo i marker esistenti per rinfrescare correttamente i gruppi
+            markerLayer.clearLayers();
+            displayedMarkerIds.clear();
+            markersMap.clear();
+
+            Object.values(groups).forEach(group => {
+                addMarkerToMap(group);
+                group.forEach(p => displayedMarkerIds.add(p.id));
             });
         }
     } catch (e) { console.error("API Error:", e); }
 }
 
-function addMarkerToMap(photo) {
-    const popupContent = `
-        <div class="popup-content">
-            <img src="${photo.url}" alt="Foto" class="popup-img">
-            <div class="popup-info">
-                <p class="address-text" style="font-weight: 700; color: var(--primary); margin-bottom: 4px;">Caricamento indirizzo...</p>
-                <div style="margin-bottom: 8px;">
-                    <span style="font-size: 10px; font-weight: 800; background: #eee; padding: 3px 6px; border-radius: 4px; color: #555; text-transform: uppercase;">${photo.category}</span>
+function addMarkerToMap(photoGroup) {
+    const mainPhoto = photoGroup[0];
+    const isMultiple = photoGroup.length > 1;
+
+    let popupContent = '';
+
+    if (!isMultiple) {
+        // Layout Standard (Singola foto)
+        popupContent = `
+            <div class="popup-content">
+                <img src="${mainPhoto.url}" alt="Foto" class="popup-img">
+                <div class="popup-info">
+                    <p class="address-text" style="font-weight: 700; color: var(--primary); margin-bottom: 4px;">Caricamento indirizzo...</p>
+                    <div style="margin-bottom: 8px;">
+                        <span style="font-size: 10px; font-weight: 800; background: #eee; padding: 3px 6px; border-radius: 4px; color: #555; text-transform: uppercase;">${mainPhoto.category}</span>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-muted);"><i data-lucide="map-pin" class="card-icon"></i> ${mainPhoto.lat.toFixed(5)}, ${mainPhoto.lng.toFixed(5)}</p>
+                    <a href="https://www.google.com/maps?q=${mainPhoto.lat},${mainPhoto.lng}" target="_blank" class="gmaps-link">
+                        <i data-lucide="external-link" style="width:12px"></i> Apri in Google Maps
+                    </a>
                 </div>
-                <p style="font-size: 12px; color: var(--text-muted);"><i data-lucide="map-pin" class="card-icon"></i> ${photo.lat.toFixed(5)}, ${photo.lng.toFixed(5)}</p>
-                <a href="https://www.google.com/maps?q=${photo.lat},${photo.lng}" target="_blank" class="gmaps-link">
-                    <i data-lucide="external-link" style="width:12px"></i> Apri in Google Maps
-                </a>
             </div>
-        </div>
-    `;
+        `;
+    } else {
+        // Layout Carousel (Stile Booking)
+        popupContent = `
+            <div class="popup-carousel-container">
+                <div class="carousel-counter">1 di ${photoGroup.length}</div>
+                <div class="popup-carousel" onscroll="updateCarouselNav(this)">
+                    ${photoGroup.map((p, i) => `
+                        <div class="carousel-item">
+                            <img src="${p.url}" alt="Foto" class="popup-img">
+                            <div class="popup-info">
+                                <p class="address-text" style="font-weight: 700; color: var(--primary); margin-bottom: 4px;">Caricamento indirizzo...</p>
+                                <div style="margin-bottom: 8px;">
+                                    <span style="font-size: 10px; font-weight: 800; background: #eee; padding: 3px 6px; border-radius: 4px; color: #555; text-transform: uppercase;">${p.category}</span>
+                                </div>
+                                <a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" class="gmaps-link">
+                                    <i data-lucide="external-link" style="width:12px"></i> Apri in Google Maps
+                                </a>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="carousel-nav">
+                    ${photoGroup.map((_, i) => `<div class="nav-dot ${i === 0 ? 'active' : ''}"></div>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+
     const customIcon = L.divIcon({
         className: 'custom-pin',
-        html: `<div class="custom-pin-inner"></div>`,
+        html: `<div class="custom-pin-inner">${isMultiple ? `<span class="pin-count">${photoGroup.length}</span>` : ''}</div>`,
         iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -10]
     });
-    const marker = L.marker([photo.lat, photo.lng], { icon: customIcon }).bindPopup(popupContent).addTo(markerLayer);
-    markersMap.set(photo.id, marker);
+
+    const marker = L.marker([mainPhoto.lat, mainPhoto.lng], { icon: customIcon }).bindPopup(popupContent).addTo(markerLayer);
+    
+    // Mappo tutti gli ID del gruppo a questo marker per il deep linking
+    photoGroup.forEach(p => markersMap.set(p.id, marker));
 }
+
+window.updateCarouselNav = (el) => {
+    const index = Math.round(el.scrollLeft / el.offsetWidth);
+    const container = el.closest('.popup-carousel-container');
+    const dots = container.querySelectorAll('.nav-dot');
+    const counter = container.querySelector('.carousel-counter');
+    
+    dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+    if (counter) counter.textContent = `${index + 1} di ${dots.length}`;
+};
 
 function handleDeepLinking() {
     const params = new URLSearchParams(window.location.search);
@@ -342,16 +406,54 @@ function showModal(title, msg, primaryLabel, secondaryLabel, onPrimary, onSecond
     modalPrimaryBtn.textContent = primaryLabel;
     modalSecondaryBtn.style.display = secondaryLabel ? 'block' : 'none';
     modalSecondaryBtn.textContent = secondaryLabel;
-    modalOverlay.style.display = 'flex';
-    modalPrimaryBtn.onclick = () => { modalOverlay.style.display = 'none'; if (onPrimary) onPrimary(); };
-    modalSecondaryBtn.onclick = () => { modalOverlay.style.display = 'none'; if (onSecondary) onSecondary(); };
+    
+    // Hide preview list and show message area
+    if (previewSection) previewSection.style.display = 'none';
+    if (uploadStatus) uploadStatus.style.display = 'none';
+    sidebarMessageArea.style.display = 'flex';
+    openSidebar(); // Assicura che la sidebar sia aperta
+
+    if (window.lucide) lucide.createIcons();
+
+    modalPrimaryBtn.onclick = () => { 
+        sidebarMessageArea.style.display = 'none'; 
+        if (onPrimary) onPrimary(); 
+        else renderPreviewList(); // Torna alla lista se non c'è azione speciale
+    };
+    modalSecondaryBtn.onclick = () => { 
+        sidebarMessageArea.style.display = 'none'; 
+        if (onSecondary) onSecondary(); 
+        else renderPreviewList();
+    };
 }
 
 setInterval(loadGlobalPhotos, CONFIG.POLLING_INTERVAL);
+
+// ── Sidebar toggle ────────────────────────────────────────────────────────
+function openSidebar() {
+    document.getElementById('upload-sidebar').classList.add('is-open');
+    document.getElementById('sidebar-overlay').classList.add('is-open');
+    document.getElementById('btn-toggle-panel').classList.add('is-open');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeSidebar() {
+    document.getElementById('upload-sidebar').classList.remove('is-open');
+    document.getElementById('sidebar-overlay').classList.remove('is-open');
+    document.getElementById('btn-toggle-panel').classList.remove('is-open');
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
     initMap();
     await loadGlobalPhotos();
     handleDeepLinking();
     if (window.lucide) lucide.createIcons();
+
+    // Sidebar controls: Il FAB ora attiva direttamente l'upload
+    document.getElementById('btn-toggle-panel').addEventListener('click', () => {
+        photoUpload.click();
+    });
+
+    document.getElementById('btn-close-sidebar').addEventListener('click', closeSidebar);
+    document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
 });
