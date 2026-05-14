@@ -385,68 +385,92 @@ body {
 }
 
 /* ── Popup Carousel (Booking Style) ── */
+.leaflet-popup-content-wrapper {
+    padding: 0;
+    overflow: hidden;
+    border-radius: 16px;
+}
+
 .leaflet-popup-content {
     width: 260px !important;
+    margin: 0 !important; /* Rimuove margini bianchi di Leaflet */
 }
 
 .popup-carousel-container {
     display: flex;
     flex-direction: column;
+    position: relative;
+    width: 260px;
 }
 
 .popup-carousel {
     display: flex;
-    overflow-x: auto;
+    overflow-x: scroll !important;
     scroll-snap-type: x mandatory;
     gap: 0;
-    width: 100%;
-    scrollbar-width: none; /* Firefox */
+    width: 260px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    position: relative;
+    border-radius: 16px 16px 0 0;
+    pointer-events: auto;
+    cursor: grab;
 }
 
-.popup-carousel::-webkit-scrollbar {
-    display: none; /* Chrome/Safari */
+.popup-carousel:active {
+    cursor: grabbing;
 }
 
 .carousel-item {
-    flex: 0 0 100%;
+    flex: 0 0 260px; /* Forza la larghezza dell'item */
     scroll-snap-align: center;
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.popup-img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
 }
 
 .carousel-counter {
     position: absolute;
-    top: 10px;
-    left: 10px;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(4px);
+    top: 12px;
+    left: 12px;
+    background: rgba(32, 32, 32, 0.7); /* Background solido senza outline */
+    backdrop-filter: blur(8px);
     color: white;
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
     font-weight: 700;
-    z-index: 10;
+    z-index: 100;
 }
 
 .carousel-nav {
     display: flex;
     justify-content: center;
-    gap: 4px;
-    padding: 8px 0;
+    gap: 6px;
+    padding: 10px 0;
     background: #fff;
-    border-top: 1px solid #f0f0f0;
+    border-top: 1px solid #f5f5f5;
 }
 
 .nav-dot {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
-    background: #ddd;
+    background: #e0e0e0;
+    transition: all 0.3s ease;
 }
 
 .nav-dot.active {
     background: var(--accent);
-    width: 12px;
+    width: 14px;
     border-radius: 10px;
 }
 
@@ -498,10 +522,10 @@ body {
 /* Custom Marker Pin Animation */
 .custom-pin-inner {
     background-color: var(--accent);
-    width: 16px;
-    height: 16px;
+    width: 48px; /* Proporzionato a 70px */
+    height: 48px;
     border-radius: 50%;
-    border: 2px solid white;
+    border: 3px solid white;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     position: relative;
     display: flex;
@@ -510,21 +534,13 @@ body {
 }
 
 .pin-count {
-    position: absolute;
-    top: -10px;
-    right: -10px;
-    background: var(--primary);
     color: white;
-    font-size: 10px;
+    font-size: 16px;
     font-weight: 800;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    pointer-events: none;
 }
 
 @keyframes pulse {

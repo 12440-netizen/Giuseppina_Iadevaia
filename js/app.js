@@ -40,19 +40,35 @@ function initMap() {
     }).addTo(map);
 
     L.control.zoom({ position: 'topright' }).addTo(map);
-    // Disabilitato spiderfy per usare il sistema a carousel stile Booking
     markerLayer = L.markerClusterGroup({ 
         showCoverageOnHover: false, 
-        spiderfyOnMaxZoom: false,
-        zoomToBoundsOnClick: true 
+        spiderfyOnMaxZoom: true,
+        zoomToBoundsOnClick: true,
+        iconCreateFunction: function(cluster) {
+            const count = cluster.getChildCount();
+            return L.divIcon({
+                className: 'custom-pin cluster-pin',
+                html: `<div class="custom-pin-inner"><span class="pin-count">${count}</span></div>`,
+                iconSize: [70, 70],
+                iconAnchor: [35, 35]
+            });
+        }
     }).addTo(map);
 
     map.on('popupopen', async (e) => {
         if (window.lucide) lucide.createIcons();
-        const addressEl = e.popup.getElement().querySelector('.address-text');
-        if (addressEl && addressEl.textContent === 'Caricamento indirizzo...') {
+        
+        const popupContainer = e.popup.getElement();
+        const addressElements = popupContainer.querySelectorAll('.address-text');
+        
+        if (addressElements.length > 0) {
             const latlng = e.popup.getLatLng();
-            addressEl.textContent = await getAddressFromCoords(latlng.lat, latlng.lng);
+            const address = await getAddressFromCoords(latlng.lat, latlng.lng);
+            addressElements.forEach(el => {
+                if (el.textContent === 'Caricamento indirizzo...') {
+                    el.textContent = address;
+                }
+            });
         }
     });
 }
@@ -271,7 +287,7 @@ async function loadGlobalPhotos() {
         if (response.ok) {
             const photos = await response.json();
             
-            // Raggruppamento per coordinate (chiave "lat_lng")
+            // Raggruppamento per coordinate ESATTE (chiave "lat_lng")
             const groups = {};
             photos.forEach(p => {
                 const key = `${p.lat.toFixed(6)}_${p.lng.toFixed(6)}`;
@@ -279,7 +295,7 @@ async function loadGlobalPhotos() {
                 groups[key].push(p);
             });
 
-            // Rimuovo i marker esistenti per rinfrescare correttamente i gruppi
+            // Pulizia per evitare marker duplicati al refresh
             markerLayer.clearLayers();
             displayedMarkerIds.clear();
             markersMap.clear();
@@ -299,7 +315,6 @@ function addMarkerToMap(photoGroup) {
     let popupContent = '';
 
     if (!isMultiple) {
-        // Layout Standard (Singola foto)
         popupContent = `
             <div class="popup-content">
                 <img src="${mainPhoto.url}" alt="Foto" class="popup-img">
@@ -316,7 +331,6 @@ function addMarkerToMap(photoGroup) {
             </div>
         `;
     } else {
-        // Layout Carousel (Stile Booking)
         popupContent = `
             <div class="popup-carousel-container">
                 <div class="carousel-counter">1 di ${photoGroup.length}</div>
@@ -345,13 +359,11 @@ function addMarkerToMap(photoGroup) {
 
     const customIcon = L.divIcon({
         className: 'custom-pin',
-        html: `<div class="custom-pin-inner">${isMultiple ? `<span class="pin-count">${photoGroup.length}</span>` : ''}</div>`,
-        iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -10]
+        html: `<div class="custom-pin-inner">${isMultiple ? `<span class="pin-count" style="color:white; font-size:16px;">${photoGroup.length}</span>` : ''}</div>`,
+        iconSize: [70, 70], iconAnchor: [35, 35], popupAnchor: [0, -35]
     });
 
     const marker = L.marker([mainPhoto.lat, mainPhoto.lng], { icon: customIcon }).bindPopup(popupContent).addTo(markerLayer);
-    
-    // Mappo tutti gli ID del gruppo a questo marker per il deep linking
     photoGroup.forEach(p => markersMap.set(p.id, marker));
 }
 
