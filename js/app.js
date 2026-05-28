@@ -1,12 +1,116 @@
 // Configuration
 const NAPOLI_COORDS = [40.8518, 14.2681];
+const NAPOLI_BOUNDS = [
+    [40.7600, 14.1200], // Sud-Ovest
+    [40.9200, 14.3800]  // Nord-Est
+];
 let map, markerLayer;
 let isTurnstileVerified = false;
 let displayedMarkerIds = new Set();
 let markersMap = new Map(); // Store marker instances by ID for deep linking
+let allPhotos = []; // Store all loaded photos for filtering
+let activeFilters = new Set(); // Store multiple active category filters
+
+// Translations
+const TRANSLATIONS = {
+    it: {
+        filterAll: "Tutte",
+        filterGraffito: "Graffiti",
+        filterStencil: "Stencil",
+        filterAffissione: "Affissione",
+        filterSticker: "Sticker",
+        filterMosaico: "Mosaico",
+        btnUploadTitle: "Carica una foto",
+        previewTitle: "Foto da inviare",
+        btnSendAll: "Invia Tutte",
+        btnCancelAll: "Annulla tutto",
+        gpsMissing: "⚠️ GPS assente",
+        missingGpsTitle: "GPS Mancante",
+        useMyLocation: "Usa Mia Posizione",
+        cancel: "Annulla",
+        gettingLocation: "Ottengo posizione...",
+        locationError: "Errore posizione.",
+        opCompletedTitle: "✅ Operazione Completata",
+        loadingAddress: "Caricamento indirizzo...",
+        openGmaps: "Apri in Google Maps",
+        unableLocation: "Impossibile ottenere la posizione attuale.",
+        analyzing: "Analisi di {count} foto...",
+        missingGpsMsg: "{count} foto non hanno coordinate. Usare la tua posizione attuale per queste foto?",
+        sendingPhoto: "Invio foto {i} di {total}...",
+        opCompletedMsg: "Abbiamo inviato {total} foto per l'approvazione."
+    },
+    en: {
+        filterAll: "All",
+        filterGraffito: "Graffiti",
+        filterStencil: "Stencils",
+        filterAffissione: "Posters",
+        filterSticker: "Stickers",
+        filterMosaico: "Mosaics",
+        btnUploadTitle: "Upload a photo",
+        previewTitle: "Photos to send",
+        btnSendAll: "Send All",
+        btnCancelAll: "Cancel all",
+        gpsMissing: "⚠️ No GPS",
+        missingGpsTitle: "Missing GPS",
+        useMyLocation: "Use My Location",
+        cancel: "Cancel",
+        gettingLocation: "Getting location...",
+        locationError: "Location error.",
+        opCompletedTitle: "✅ Operation Completed",
+        loadingAddress: "Loading address...",
+        openGmaps: "Open in Google Maps",
+        unableLocation: "Unable to get current location.",
+        analyzing: "Analyzing {count} photos...",
+        missingGpsMsg: "{count} photos don't have coordinates. Use your current location for these photos?",
+        sendingPhoto: "Sending photo {i} of {total}...",
+        opCompletedMsg: "We have sent {total} photos for approval."
+    }
+};
+
+let currentLang = 'it';
+function t(key, params) {
+    let str = TRANSLATIONS[currentLang][key] || key;
+    if (params) {
+        for (let k in params) {
+            str = str.replace(`{${k}}`, params[k]);
+        }
+    }
+    return str;
+}
+
+function setLanguage(lang) {
+    currentLang = lang;
+    document.getElementById('lang-text').textContent = lang === 'it' ? 'EN' : 'IT';
+
+    // Update filter chips
+    document.querySelector('.filter-chip[data-category="all"]').textContent = t('filterAll');
+    document.querySelector('.filter-chip[data-category="Graffito"]').textContent = t('filterGraffito');
+    document.querySelector('.filter-chip[data-category="Stencil"]').textContent = t('filterStencil');
+    document.querySelector('.filter-chip[data-category="Affissione"]').textContent = t('filterAffissione');
+    document.querySelector('.filter-chip[data-category="Sticker"]').textContent = t('filterSticker');
+    document.querySelector('.filter-chip[data-category="Mosaico"]').textContent = t('filterMosaico');
+    
+    // UI attributes
+    document.getElementById('btn-toggle-panel').title = t('btnUploadTitle');
+    
+    // Action buttons inside sidebar
+    const sendAll = document.getElementById('btn-confirm-upload');
+    if (sendAll) sendAll.innerHTML = `<i data-lucide="send"></i> ${t('btnSendAll')}`;
+    const cancelAll = document.getElementById('btn-cancel-preview');
+    if (cancelAll) cancelAll.textContent = t('btnCancelAll');
+
+    // Title
+    const titleEl = document.querySelector('.section-title');
+    if (titleEl && titleEl.childNodes.length > 0) {
+        titleEl.childNodes[0].nodeValue = t('previewTitle') + " (";
+    }
+
+    if (window.lucide) lucide.createIcons();
+    renderPreviewList(); // Update preview list texts if open
+    if (allPhotos.length > 0) renderFilteredMap(); // Update texts inside map popups
+}
 
 // DOM Elements
-const btnLocation = document.getElementById('btn-location');
 const photoUpload = document.getElementById('photo-upload');
 const uploadStatus = document.getElementById('upload-status');
 const statusText = document.getElementById('status-text');
@@ -32,7 +136,13 @@ let uploadQueue = []; // Array of { id, file, filename, dataUrl, lat, lng, categ
  * INIT: Leaflet Map
  */
 function initMap() {
-    map = L.map('map', { zoomControl: false }).setView(NAPOLI_COORDS, 13);
+    map = L.map('map', { 
+        zoomControl: false,
+        maxBounds: NAPOLI_BOUNDS,
+        maxBoundsViscosity: 1.0,
+        minZoom: 12
+    }).setView(NAPOLI_COORDS, 13);
+    
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO',
         subdomains: 'abcd',
@@ -65,7 +175,7 @@ function initMap() {
             const latlng = e.popup.getLatLng();
             const address = await getAddressFromCoords(latlng.lat, latlng.lng);
             addressElements.forEach(el => {
-                if (el.textContent === 'Caricamento indirizzo...') {
+                if (el.textContent === t('loadingAddress')) {
                     el.textContent = address;
                 }
             });
@@ -124,7 +234,7 @@ photoUpload.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
 
-    showStatus(`Analisi di ${files.length} foto...`, true);
+    showStatus(t('analyzing', {count: files.length}), true);
     
     for (const file of files) {
         await processFile(file);
@@ -184,11 +294,11 @@ function renderPreviewList() {
                         <i data-lucide="x-circle"></i>
                     </button>
                 </div>
-                ${!item.lat ? '<p style="color:#e67e22; font-size:10px; font-weight:700;">⚠️ GPS assente</p>' : ''}
+                ${!item.lat ? `<p style="color:#e67e22; font-size:10px; font-weight:700;">${t('gpsMissing')}</p>` : ''}
                 <div class="mini-category-chips">
-                    ${['Graffito', 'Stencil', 'Affissione', 'Sticker'].map(cat => `
+                    ${['Graffito', 'Stencil', 'Affissione', 'Sticker', 'Mosaico'].map(cat => `
                         <span class="mini-chip ${item.category === cat ? 'active' : ''}" 
-                              onclick="setCategory('${item.id}', '${cat}')">${cat}</span>
+                              onclick="setCategory('${item.id}', '${cat}')">${t('filter' + cat)}</span>
                     `).join('')}
                 </div>
             </div>
@@ -221,11 +331,11 @@ btnConfirmUpload.addEventListener('click', async () => {
     const missingGps = uploadQueue.filter(p => !p.lat);
     if (missingGps.length > 0) {
         showModal(
-            "GPS Mancante", 
-            `${missingGps.length} foto non hanno coordinate. Usare la tua posizione attuale per queste foto?`,
-            "Usa Mia Posizione", "Annulla",
+            t('missingGpsTitle'), 
+            t('missingGpsMsg', {count: missingGps.length}),
+            t('useMyLocation'), t('cancel'),
             async () => {
-                showStatus("Ottengo posizione...", true);
+                showStatus(t('gettingLocation'), true);
                 try {
                     const pos = await getCurrentPositionPromise();
                     missingGps.forEach(p => {
@@ -233,7 +343,7 @@ btnConfirmUpload.addEventListener('click', async () => {
                         p.lng = pos.coords.longitude;
                     });
                     startBulkUpload();
-                } catch(e) { alert("Errore posizione."); showStatus("", false); }
+                } catch(e) { alert(t('locationError')); showStatus("", false); }
             }
         );
     } else {
@@ -247,12 +357,12 @@ async function startBulkUpload() {
 
     for (let i = 0; i < uploadQueue.length; i++) {
         const item = uploadQueue[i];
-        showStatus(`Invio foto ${i+1} di ${total}...`, true);
+        showStatus(t('sendingPhoto', {i: i+1, total: total}), true);
         await uploadPhotoToServer(item);
     }
 
     showStatus("", false);
-    showModal("✅ Operazione Completata", `Abbiamo inviato ${total} foto per l'approvazione.`, "Ok", "");
+    showModal(t('opCompletedTitle'), t('opCompletedMsg', {total: total}), "Ok", "");
     uploadQueue = [];
     renderPreviewList();
 }
@@ -287,23 +397,13 @@ async function loadGlobalPhotos() {
         if (response.ok) {
             const photos = await response.json();
             
-            // Raggruppamento per coordinate ESATTE (chiave "lat_lng")
-            const groups = {};
-            photos.forEach(p => {
-                const key = `${p.lat.toFixed(6)}_${p.lng.toFixed(6)}`;
-                if (!groups[key]) groups[key] = [];
-                groups[key].push(p);
-            });
+            // Verifica se ci sono cambiamenti reali prima di resettare tutto
+            const newPhotosJson = JSON.stringify(photos);
+            if (window.lastPhotosJson === newPhotosJson) return;
+            window.lastPhotosJson = newPhotosJson;
 
-            // Pulizia per evitare marker duplicati al refresh
-            markerLayer.clearLayers();
-            displayedMarkerIds.clear();
-            markersMap.clear();
-
-            Object.values(groups).forEach(group => {
-                addMarkerToMap(group);
-                group.forEach(p => displayedMarkerIds.add(p.id));
-            });
+            allPhotos = photos; // Store globally for filtering
+            renderFilteredMap();
         }
     } catch (e) { console.error("API Error:", e); }
 }
@@ -319,13 +419,13 @@ function addMarkerToMap(photoGroup) {
             <div class="popup-content">
                 <img src="${mainPhoto.url}" alt="Foto" class="popup-img">
                 <div class="popup-info">
-                    <p class="address-text" style="font-weight: 700; color: var(--primary); margin-bottom: 4px;">Caricamento indirizzo...</p>
+                    <p class="address-text" style="font-weight: 700; color: var(--primary); margin-bottom: 4px;">${t('loadingAddress')}</p>
                     <div style="margin-bottom: 8px;">
-                        <span style="font-size: 10px; font-weight: 800; background: #eee; padding: 3px 6px; border-radius: 4px; color: #555; text-transform: uppercase;">${mainPhoto.category}</span>
+                        <span style="font-size: 10px; font-weight: 800; background: #eee; padding: 3px 6px; border-radius: 4px; color: #555; text-transform: uppercase;">${t('filter' + mainPhoto.category)}</span>
                     </div>
                     <p style="font-size: 12px; color: var(--text-muted);"><i data-lucide="map-pin" class="card-icon"></i> ${mainPhoto.lat.toFixed(5)}, ${mainPhoto.lng.toFixed(5)}</p>
                     <a href="https://www.google.com/maps?q=${mainPhoto.lat},${mainPhoto.lng}" target="_blank" class="gmaps-link">
-                        <i data-lucide="external-link" style="width:12px"></i> Apri in Google Maps
+                        <i data-lucide="external-link" style="width:12px"></i> ${t('openGmaps')}
                     </a>
                 </div>
             </div>
@@ -339,12 +439,12 @@ function addMarkerToMap(photoGroup) {
                         <div class="carousel-item">
                             <img src="${p.url}" alt="Foto" class="popup-img">
                             <div class="popup-info">
-                                <p class="address-text" style="font-weight: 700; color: var(--primary); margin-bottom: 4px;">Caricamento indirizzo...</p>
+                                <p class="address-text" style="font-weight: 700; color: var(--primary); margin-bottom: 4px;">${t('loadingAddress')}</p>
                                 <div style="margin-bottom: 8px;">
-                                    <span style="font-size: 10px; font-weight: 800; background: #eee; padding: 3px 6px; border-radius: 4px; color: #555; text-transform: uppercase;">${p.category}</span>
+                                    <span style="font-size: 10px; font-weight: 800; background: #eee; padding: 3px 6px; border-radius: 4px; color: #555; text-transform: uppercase;">${t('filter' + p.category)}</span>
                                 </div>
                                 <a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" class="gmaps-link">
-                                    <i data-lucide="external-link" style="width:12px"></i> Apri in Google Maps
+                                    <i data-lucide="external-link" style="width:12px"></i> ${t('openGmaps')}
                                 </a>
                             </div>
                         </div>
@@ -393,15 +493,6 @@ function getCurrentPositionPromise() {
     });
 }
 
-btnLocation.addEventListener('click', async () => {
-    try {
-        const position = await getCurrentPositionPromise();
-        const { latitude, longitude } = position.coords;
-        map.flyTo([latitude, longitude], 15, { animate: true, duration: 1.5 });
-        L.circleMarker([latitude, longitude], { radius: 8, fillColor: "var(--primary)", color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.8 }).addTo(markerLayer);
-    } catch { alert("Impossibile ottenere la posizione attuale."); }
-});
-
 btnCancelPreview.addEventListener('click', () => {
     uploadQueue = [];
     renderPreviewList();
@@ -441,6 +532,62 @@ function showModal(title, msg, primaryLabel, secondaryLabel, onPrimary, onSecond
 
 setInterval(loadGlobalPhotos, CONFIG.POLLING_INTERVAL);
 
+/**
+ * FEATURE: Category Filtering (Multi-Select)
+ */
+function toggleFilter(category) {
+    if (category === 'all') {
+        activeFilters.clear();
+    } else {
+        if (activeFilters.has(category)) {
+            activeFilters.delete(category);
+        } else {
+            activeFilters.add(category);
+        }
+    }
+    renderFilteredMap();
+}
+
+function renderFilteredMap() {
+    // Se nessun filtro è attivo, mostra tutte le foto
+    const filtered = activeFilters.size === 0 
+        ? allPhotos 
+        : allPhotos.filter(p => activeFilters.has(p.category));
+    
+    // Raggruppamento per coordinate ESATTE
+    const groups = {};
+    filtered.forEach(p => {
+        const key = `${p.lat.toFixed(6)}_${p.lng.toFixed(6)}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(p);
+    });
+
+    markerLayer.clearLayers();
+    displayedMarkerIds.clear();
+    markersMap.clear();
+
+    Object.values(groups).forEach(group => {
+        addMarkerToMap(group);
+        group.forEach(p => displayedMarkerIds.add(p.id));
+    });
+    
+    // Update filter chip UI
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+        if (chip.dataset.category === 'all') {
+            chip.classList.toggle('active', activeFilters.size === 0);
+        } else {
+            chip.classList.toggle('active', activeFilters.has(chip.dataset.category));
+        }
+    });
+}
+
+// Wire up filter chip click events
+document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+        toggleFilter(chip.dataset.category);
+    });
+});
+
 // ── Sidebar toggle ────────────────────────────────────────────────────────
 function openSidebar() {
     document.getElementById('upload-sidebar').classList.add('is-open');
@@ -465,6 +612,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('btn-toggle-panel').addEventListener('click', () => {
         photoUpload.click();
     });
+
+    // Language toggle listener
+    const btnLangToggle = document.getElementById('btn-lang-toggle');
+    if (btnLangToggle) {
+        btnLangToggle.addEventListener('click', () => {
+            setLanguage(currentLang === 'it' ? 'en' : 'it');
+        });
+    }
 
     document.getElementById('btn-close-sidebar').addEventListener('click', closeSidebar);
     document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);

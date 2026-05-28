@@ -11,13 +11,14 @@ Il progetto segue una struttura **Client-Server** con backend Node.js:
 ### 🎨 Frontend (HTML/CSS/JS)
 - **Mappa**: Basata su [Leaflet.js](https://leafletjs.com/) con tile map di CartoDB (stile Voyager).
 - **Icone**: Utilizzo della libreria **Lucide Icons** (stile outline) per un'interfaccia minimalista e moderna.
-- **Design System**: Estetica premium basata su una palette colori sofisticata: **Deep Carbon (#202020)** per la struttura, **Napoli Azure (#8dc5d9)** per gli accenti, **Sunlight Gold (#ffd15b)** per le azioni (CTA) e **Warm Stone (#ccc2ac)** per i toni neutri. Utilizzo di **Glassmorphism**, **Manrope Font** e una **Sidebar destra** per la gestione degli upload.
-- **Metadati**: Utilizzo di `EXIF.js` per estrarre le coordinate GPS direttamente dai file originali.
-- **Resizing Client-Side**: Le immagini vengono ridimensionate automaticamente (max 1600px) prima dell'upload per ottimizzare banda e spazio su disco.
-- **Clustering & Spiderfy**: Utilizzo di `Leaflet.markercluster` per raggruppare i marker vicini e gestire le foto con coordinate identiche (funzione spiderfy al clic).
-- **Sidebar & Upload Flow**: L'interazione è guidata da un pulsante flottante (FAB) in basso a destra. La selezione dei file apre automaticamente la sidebar laterale che gestisce la coda di caricamento.
-- **Preview & Categorizzazione**: Lista scorrevole di anteprime integrata nella sidebar con selezione rapida della categoria. La sidebar si chiude automaticamente se la coda viene svuotata.
-- **Messaggistica Integrata**: Le notifiche di sistema, gli errori e le conferme di invio sono visualizzati direttamente all'interno della sidebar tramite pannelli dedicati, eliminando l'uso di popup esterni (modal).
+- **Design System**: Estetica premium basata su una palette colori sofisticata: **Deep Carbon (#202020)** per la struttura, **Napoli Azure (#8dc5d9)** per gli accenti. Utilizzo di **Sidebar destra** e **Marker personalizzati** da 70px.
+- **Marker & Cluster**: Tutti i punti di interesse e i cluster sono rappresentati da pin circolari celesti di **70px**. I numeri (conteggio foto) sono visualizzati in bianco e perfettamente centrati all'interno del cerchio azzurro.
+- **Clustering Ibrido**: 
+    - **Posizioni Identiche**: Foto con coordinate GPS esatte vengono raggruppate in un unico marker che apre un **Carousel (stile Booking)** per scorrere le immagini.
+    - **Posizioni Vicine**: Marker in zone limitrofe vengono raggruppati in cluster che utilizzano l'espansione (**Spiderfy**) per mostrare i singoli punti al clic.
+- **Filtri Mappa Multipli**: Barra filtri orizzontale posta in alto, con logica di selezione multipla (Graffiti, Stencil, Affissione, Sticker, Mosaico). Se nessun filtro è attivo, vengono visualizzati tutti i marker.
+- **Internazionalizzazione (i18n)**: Supporto bilingue (Italiano/Inglese) gestito lato client tramite dizionario in `app.js`. La lingua si cambia istantaneamente tramite l'apposito pulsante (FAB) in basso a destra.
+- **Metadati & Geocoding**: Estrazione GPS via `EXIF.js` e Reverse Geocoding via `Nominatim` per visualizzare l'indirizzo nel popup.
 
 ### ⚙ Backend (Node.js / Express)
 - **Server**: Express.js in esecuzione su `localhost:3000` (sviluppo locale).
@@ -31,12 +32,14 @@ Il progetto segue una struttura **Client-Server** con backend Node.js:
 
 ## 🛠 Funzionamento Utente (Mappa)
 
-1. **Attivazione**: L'utente clicca sul pulsante flottante (FAB) della fotocamera. Si apre immediatamente il selettore file del sistema operativo.
-2. **Selezione Multipla**: Il sistema analizza i metadati EXIF di ciascuna immagine in parallelo e apre la **Sidebar destra** con le anteprime caricate.
+1. **Attivazione Upload**: L'utente clicca sul pulsante flottante (FAB) della fotocamera. Si apre immediatamente il selettore file del sistema operativo.
+2. **Selezione Multipla & Categorie**: Il sistema analizza i metadati EXIF. Le foto possono essere categorizzate in: *Graffito, Stencil, Affissione, Sticker, Mosaico*.
 3. **Analisi GPS & Fallback**: Se una o più foto mancano di coordinate, viene mostrato un messaggio nella sidebar che propone di applicare la posizione attuale dell'utente.
-4. **Gestione Sidebar**: L'utente può categorizzare le foto o rimuoverle. Se tutte le foto vengono rimosse, la sidebar si chiude automaticamente.
-5. **Invio Massivo**: Al click su "Invia Tutte", le foto vengono caricate in sequenza. Al termine, un messaggio di successo appare direttamente nella sidebar.
-5. **Popup Informativi**: Ogni marker sulla mappa mostra un popup con anteprima foto, categoria, indirizzo (reverse geocoding via Nominatim) e un **link diretto a Google Maps**.
+4. **Filtri & Navigazione**: Sulla mappa, i marker si riorganizzano in base ai filtri attivi in alto. Il sistema multilingua aggiorna dinamicamente anche i popup, le allerte e i filtri se cambiato tramite l'apposito pulsante.
+5. **Visualizzazione Mappa**: 
+    - Se più foto hanno lo stesso punto GPS: un unico marker apre un **popup carousel**.
+    - Se le foto sono vicine: i cluster si espandono a raggiera (**spiderfy**) per mostrare ogni pin.
+    - Ogni popup include indirizzo, categoria e link a **Google Maps**.
 6. **Sicurezza**: Integrazione di **Cloudflare Turnstile (Invisible)** per la protezione dai bot.
 
 ---
@@ -134,4 +137,4 @@ La dashboard è divisa in **due sezioni separate**:
 
 ---
 
-*Ultimo aggiornamento: 14 Maggio 2026*
+*Ultimo aggiornamento: 28 Maggio 2026*

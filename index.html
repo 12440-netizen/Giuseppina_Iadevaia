@@ -36,16 +36,25 @@
 
 <body>
     <div id="map"></div>
-    <div class="map-watermark"></div>
 
     <!-- Logo Container -->
     <div class="logo-container glass-panel">
         <img src="assets/logo_azzurro_01.svg" alt="MIRAMARADONA Logo" class="main-logo">
     </div>
 
-    <!-- Floating Action Button for Location -->
-    <button id="btn-location" class="fab fab-location" title="Vai alla Posizione Attuale">
-        <i data-lucide="crosshair"></i>
+    <!-- Category Filter Bar -->
+    <div id="filter-bar" class="filter-bar glass-panel">
+        <button class="filter-chip active" data-category="all">Tutte</button>
+        <button class="filter-chip" data-category="Graffito">Graffiti</button>
+        <button class="filter-chip" data-category="Stencil">Stencil</button>
+        <button class="filter-chip" data-category="Affissione">Affissione</button>
+        <button class="filter-chip" data-category="Sticker">Sticker</button>
+        <button class="filter-chip" data-category="Mosaico">Mosaico</button>
+    </div>
+
+    <!-- Floating Action Button for Language Toggle -->
+    <button id="btn-lang-toggle" class="fab fab-lang" title="Cambia Lingua / Change Language">
+        <span id="lang-text" style="font-size: 16px; font-weight: 800; font-family: 'Manrope', sans-serif;">EN</span>
     </button>
 
     <!-- Floating Action Button for Upload Panel -->
