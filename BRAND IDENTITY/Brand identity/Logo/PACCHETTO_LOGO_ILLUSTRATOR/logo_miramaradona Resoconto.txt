@@ -1,0 +1,40 @@
+Resoconto pacchetto
+
+-----------------------------------------------------------------------------
+Documento: 
+Nome: logo_miramaradona.ai
+Metodo colore: Colore RGB
+Profilo colore:  nessuno
+Unitˆ righelli: pixel
+Dimensioni tavola disegno: 548,8366 px x 140,4796 px
+Mostra immagini con metodo contorno: NO
+Evidenzia font sostituiti: NO
+Evidenzia glifi sostituiti: NO
+Mantieni testo modificabile
+Simula carta colorata: NO
+
+-----------------------------------------------------------------------------
+Oggetti in tinta piatta: 
+
+-----------------------------------------------------------------------------
+Font mancanti:NESSUNO
+
+-----------------------------------------------------------------------------
+Font protetti non inclusi nel pacchetto:
+Millesime Bold (Adobe Fonts)
+
+-----------------------------------------------------------------------------
+Font: 
+ITC Gorilla BT Regular (OTF)
+
+-----------------------------------------------------------------------------
+Font incorporati:
+NESSUNO
+
+-----------------------------------------------------------------------------
+Collegamenti mancanti:
+NESSUNO
+
+-----------------------------------------------------------------------------
+Immagini collegate: 
+NESSUNO

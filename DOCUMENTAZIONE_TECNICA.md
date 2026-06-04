@@ -9,16 +9,16 @@
 Il progetto segue una struttura **Client-Server** con backend Node.js:
 
 ### 🎨 Frontend (HTML/CSS/JS)
-- **Mappa**: Basata su [Leaflet.js](https://leafletjs.com/) con tile map di CartoDB (stile Voyager).
+- **Mappa**: Basata su [Leaflet.js](https://leafletjs.com/) con tile map di CartoDB (stile Voyager). Avvio centrato su Napoli con zoom ravvicinato (livello 15) per mostrare subito il dettaglio delle strade.
 - **Icone**: Utilizzo della libreria **Lucide Icons** (stile outline) per un'interfaccia minimalista e moderna.
 - **Design System**: Estetica premium basata su una palette colori sofisticata: **Deep Carbon (#202020)** per la struttura, **Napoli Azure (#8dc5d9)** per gli accenti. Utilizzo di **Sidebar destra** e **Marker personalizzati** da 70px.
 - **Marker & Cluster**: Tutti i punti di interesse e i cluster sono rappresentati da pin circolari celesti di **70px**. I numeri (conteggio foto) sono visualizzati in bianco e perfettamente centrati all'interno del cerchio azzurro.
 - **Clustering Ibrido**: 
     - **Posizioni Identiche**: Foto con coordinate GPS esatte vengono raggruppate in un unico marker che apre un **Carousel (stile Booking)** per scorrere le immagini.
     - **Posizioni Vicine**: Marker in zone limitrofe vengono raggruppati in cluster che utilizzano l'espansione (**Spiderfy**) per mostrare i singoli punti al clic.
-- **Filtri Mappa Multipli**: Barra filtri orizzontale posta in alto, con logica di selezione multipla (Graffiti, Stencil, Affissione, Sticker, Mosaico). Se nessun filtro è attivo, vengono visualizzati tutti i marker.
+- **Filtri Mappa Multipli**: Barra filtri orizzontale posta in alto, con logica di selezione multipla (Graffiti, Stencil, Affissione, Sticker, Mosaico). Sia la barra che i pulsanti presentano un design squadrato (`border-radius: 0`) e il colore del testo diventa azzurro al passaggio del mouse o quando sono attivi.
 - **Internazionalizzazione (i18n)**: Supporto bilingue (Italiano/Inglese) gestito lato client tramite dizionario in `app.js`. La lingua si cambia istantaneamente tramite l'apposito pulsante (FAB) in basso a destra.
-- **Metadati & Geocoding**: Estrazione GPS via `EXIF.js` e Reverse Geocoding via `Nominatim` per visualizzare l'indirizzo nel popup.
+- **Metadati & Geocoding Intelligente**: Estrazione GPS via `EXIF.js` e Reverse Geocoding avanzato via `Nominatim` per risolvere piazze, vie, quartieri e numeri civici, che vengono poi mostrati direttamente nei popup della mappa al posto delle coordinate grezze.
 
 ### ⚙ Backend (Node.js / Express)
 - **Server**: Express.js in esecuzione su `localhost:3000` (sviluppo locale).
@@ -66,10 +66,113 @@ La dashboard è divisa in **due sezioni separate**:
 
 - **Deep Linking**: Il pulsante "Vedi" apre la mappa pubblica centrando automaticamente la visuale sulla foto scelta e aprendone il popup informativo tramite parametri URL (`lat`, `lng`, `id`).
 
-- Ogni card mostra: anteprima foto, badge di stato, categoria, indirizzo (via reverse geocoding Nominatim) e coordinate GPS.
+- Ogni card mostra: anteprima foto, badge di stato, categoria, e l'indirizzo dettagliato (via reverse geocoding Nominatim). Le coordinate GPS grezze sono state sostituite dalla dicitura dell'indirizzo esatto per una migliore leggibilità.
 - Un **badge contatore** aggiornato in tempo reale indica quante foto ci sono per ogni sezione.
 - Il **login e logout** avvengono nella stessa pagina senza redirect.
 - Se la sessione è ancora valida, il login viene saltato automaticamente.
+
+---
+
+## 🎨 Brand Identity
+
+Questa sezione documenta il sistema visivo ufficiale di **MIRAMARADONA**, derivato dai materiali nella cartella `BRAND IDENTITY/`.
+
+### 🖋 Tipografia
+
+Il brand utilizza due typeface principali:
+
+| Ruolo | Font | Formato | Note |
+|---|---|---|---|
+| **Display / Titoli** | **ITC Gorilla Regular** | `.otf` | Font caratterizzante per headline e logotipo testuale |
+| **Corpo / UI** | **Manrope** | Variable font (`.zip`) | Font moderno variable per testi, UI e label |
+
+> I file originali si trovano in `BRAND IDENTITY/Brand identity/Font/`.
+
+---
+
+### 🔷 Logo
+
+Il logo di MIRAMARADONA è disponibile in più varianti cromatiche e formati. Il file master in formato vettoriale è:
+
+**`BRAND IDENTITY/Brand identity/LOGO DEFINITIVO/LOGO MIRAMARADONA DEFINITIVO.ai`**
+
+#### Varianti Ufficiali del Logo (LOGO DEFINITIVO)
+
+Ogni variante è disponibile in 3 versioni (`_01`, `_02`, `_03`) in formato **SVG**:
+
+| Variante | Colore sfondo | Colore testo | File |
+|---|---|---|---|
+| **Azzurro** *(principale)* | `#8dc5d9` — Napoli Azure | `#ffffff` — Bianco | `blue_logo/blue_logo_0[1-3].svg` |
+| **Giallo** | `#ffd15b` — Giallo Maradona | `#ffffff` — Bianco | `yellow/yellow_logo_0[1-3].svg` |
+| **Nero** *(positivo)* | `#000000` — Nero | `#ffffff` — Bianco | `black/black_logo_0[1-3].svg` |
+| **Bianco** *(negativo)* | `#ffffff` — Bianco | `#000000` — Nero | `white_logo/white_logo_0[1-3].svg` |
+
+#### Set Logo Completo (cartella `Logo/`)
+
+Versioni aggiuntive disponibili in **SVG** e **PNG** con le seguenti denominazioni:
+
+- `logo_azzurro_01/02/03` — Variante celeste principale
+- `logo_giallo_01/02/03` — Variante gialla
+- `logo_positivo_01/02/03` — Logo positivo (scuro su chiaro)
+- `logo_negativo_01/02/03` — Logo negativo (chiaro su scuro)
+- `logo.png` — Logo base semplificato
+
+> Il logo da usare nel sito è **`assets/logo_azzurro_01.svg`** (già integrato nel progetto).
+
+#### Applicazioni del Brand
+
+La cartella `BRAND IDENTITY/Brand identity/applicazioni/` contiene mockup dimostrativi:
+
+- **Stickers** — `Mockup stickers.png`
+- **Tote bag (bianca)** — `mock up tote bag.png`
+- **Tote bag (celeste)** — `mock up tote bag celeste.png`
+- **Composizioni grafiche** — 4 immagini generate (Marzo 2026)
+- **Campagna visiva** — `Senza titolo-2.png` (composizione completa)
+
+---
+
+## 🎨 Color Palette
+
+La palette ufficiale di MIRAMARADONA è documentata in `COLOR PALETTE/Color palette/` (file `palette maradroga.pdf` e `Tavola disegno 2.jpg`).
+
+I colori ufficiali estratti dai file SVG del logo sono:
+
+### Colori Primari
+
+| Nome | HEX | Uso |
+|---|---|---|
+| **Napoli Azure** | `#8dc5d9` | Colore primario — sfondo logo principale, marker mappa, accenti UI |
+| **Bianco** | `#ffffff` | Colore secondario — testo su sfondo azzurro o nero |
+| **Nero** | `#000000` | Colore terziario — sfondo logo versione positiva |
+
+### Colori di Accento
+
+| Nome | HEX | Uso |
+|---|---|---|
+| **Giallo Maradona** | `#ffd15b` | Accento caldo — variante logo gialla, highlights |
+
+### Colori Sistema (UI)
+
+| Nome | HEX | Uso |
+|---|---|---|
+| **Deep Carbon** | `#202020` | Sfondo principale dell'interfaccia web |
+| **Napoli Azure** | `#8dc5d9` | Accenti, marker, bordi attivi, badge |
+
+### Riferimento CSS
+
+```css
+:root {
+  /* Brand Colors */
+  --color-napoli-azure:   #8dc5d9;  /* Primario */
+  --color-giallo-maradona: #ffd15b; /* Accento */
+  --color-white:          #ffffff;
+  --color-black:          #000000;
+
+  /* UI Colors */
+  --color-deep-carbon:    #202020;  /* Sfondo UI */
+  --color-accent:         #8dc5d9;  /* = Napoli Azure */
+}
+```
 
 ---
 
@@ -137,4 +240,4 @@ La dashboard è divisa in **due sezioni separate**:
 
 ---
 
-*Ultimo aggiornamento: 28 Maggio 2026*
+*Ultimo aggiornamento: Giugno 2026*

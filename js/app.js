@@ -141,7 +141,7 @@ function initMap() {
         maxBounds: NAPOLI_BOUNDS,
         maxBoundsViscosity: 1.0,
         minZoom: 12
-    }).setView(NAPOLI_COORDS, 13);
+    }).setView(NAPOLI_COORDS, 15);
     
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap &copy; CARTO',
@@ -190,7 +190,13 @@ async function getAddressFromCoords(lat, lng) {
     try {
         const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, { headers: { 'Accept-Language': 'it' } });
         const data = await res.json();
-        return data.address ? (data.address.road || data.address.pedestrian || data.address.suburb || "Napoli") : "Napoli, Italia";
+        if (data && data.address) {
+            const a = data.address;
+            let street = a.road || a.square || a.pedestrian || a.footway || a.path || a.neighbourhood || a.suburb;
+            if (street && a.house_number) street += ", " + a.house_number;
+            return street ? street : (a.city || a.town || "Napoli");
+        }
+        return "Napoli, Italia";
     } catch { return "Napoli, Italia"; }
 }
 
@@ -419,11 +425,13 @@ function addMarkerToMap(photoGroup) {
             <div class="popup-content">
                 <img src="${mainPhoto.url}" alt="Foto" class="popup-img">
                 <div class="popup-info">
-                    <p class="address-text" style="font-weight: 700; color: var(--primary); margin-bottom: 4px;">${t('loadingAddress')}</p>
                     <div style="margin-bottom: 8px;">
                         <span style="font-size: 10px; font-weight: 800; background: #eee; padding: 3px 6px; border-radius: 4px; color: #555; text-transform: uppercase;">${t('filter' + mainPhoto.category)}</span>
                     </div>
-                    <p style="font-size: 12px; color: var(--text-muted);"><i data-lucide="map-pin" class="card-icon"></i> ${mainPhoto.lat.toFixed(5)}, ${mainPhoto.lng.toFixed(5)}</p>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">
+                        <i data-lucide="map-pin" class="card-icon"></i>
+                        <span class="address-text" style="font-weight: 600; color: var(--primary);">${t('loadingAddress')}</span>
+                    </p>
                     <a href="https://www.google.com/maps?q=${mainPhoto.lat},${mainPhoto.lng}" target="_blank" class="gmaps-link">
                         <i data-lucide="external-link" style="width:12px"></i> ${t('openGmaps')}
                     </a>
@@ -439,10 +447,13 @@ function addMarkerToMap(photoGroup) {
                         <div class="carousel-item">
                             <img src="${p.url}" alt="Foto" class="popup-img">
                             <div class="popup-info">
-                                <p class="address-text" style="font-weight: 700; color: var(--primary); margin-bottom: 4px;">${t('loadingAddress')}</p>
                                 <div style="margin-bottom: 8px;">
                                     <span style="font-size: 10px; font-weight: 800; background: #eee; padding: 3px 6px; border-radius: 4px; color: #555; text-transform: uppercase;">${t('filter' + p.category)}</span>
                                 </div>
+                                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 4px;">
+                                    <i data-lucide="map-pin" class="card-icon"></i>
+                                    <span class="address-text" style="font-weight: 600; color: var(--primary);">${t('loadingAddress')}</span>
+                                </p>
                                 <a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" class="gmaps-link">
                                     <i data-lucide="external-link" style="width:12px"></i> ${t('openGmaps')}
                                 </a>

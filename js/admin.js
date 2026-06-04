@@ -118,10 +118,9 @@ function renderGrid(gridId, photos, type) {
                         ${photo.category || 'Generale'}
                     </span>
                 </div>
-                <p class="admin-address" style="font-weight:700; color:#111; margin-bottom:4px;">Caricamento...</p>
-                <p style="font-size:13px; color:#777;">
+                <p style="font-size:13px; color:#777; margin-bottom:4px;">
                     <i data-lucide="map-pin" class="card-icon"></i>
-                    ${photo.lat.toFixed(5)}, ${photo.lng.toFixed(5)}
+                    <span class="admin-address" style="font-weight:600; color:#111;">Caricamento...</span>
                 </p>
             </div>
             <div class="card-actions ${type === 'approved' ? 'single' : ''}">
@@ -169,9 +168,13 @@ async function getAddressFromCoords(lat, lng) {
             { headers: { 'Accept-Language': 'it' } }
         );
         const data = await res.json();
-        return data.address
-            ? (data.address.road || data.address.pedestrian || data.address.suburb || 'Napoli')
-            : 'Napoli, Italia';
+        if (data && data.address) {
+            const a = data.address;
+            let street = a.road || a.square || a.pedestrian || a.footway || a.path || a.neighbourhood || a.suburb;
+            if (street && a.house_number) street += ", " + a.house_number;
+            return street ? street : (a.city || a.town || 'Napoli');
+        }
+        return 'Napoli, Italia';
     } catch {
         return 'Napoli, Italia';
     }
